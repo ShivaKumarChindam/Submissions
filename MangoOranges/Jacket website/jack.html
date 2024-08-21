@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jacket Reselling Website</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e0f7fa; /* Light cyan background */
+            color: #263238; /* Darker gray text */
+        }
+        header {
+            background-color: #00695c; /* Teal */
+            color: #ffffff; /* White text */
+            padding: 15px 30px;
+            text-align: center;
+        }
+        header nav a {
+            color: #ffffff; /* White navigation link color */
+            text-decoration: none;
+            margin: 0 15px;
+        }
+        header nav a:hover {
+            text-decoration: underline;
+        }
+        header form input[type="text"],
+        header form button {
+            padding: 10px;
+            font-size: 16px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 30px;
+            color: #263238; /* Darker gray container text */
+        }
+        .product-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .product {
+            width: 280px;
+            background-color: #ffffff; /* White background */
+            border: 2px solid #004d40; /* Dark teal border */
+            margin: 15px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); /* Slightly darker box shadow */
+        }
+        img{
+            height:auto;
+            width:270px;
+        }
+.slider{
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin: auto;
+    overflow: hidden;
+}
+
+.slides {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+
+.prev, .next {
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    width: auto;
+    margin-top: -22px; /* Adjust vertical positioning */
+    padding: 16px;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    transition: 0.6s ease;
+    border-radius: 0 3px 3px 0;
+    user-select: none;
+}
+
+.next {
+    right: 10px; /* Adjust right distance from edge */
+    border-radius: 3px 0 0 3px;
+}
+
+.prev {
+    left: 10px; /* Adjust left distance from edge */
+    border-radius: 0 3px 3px 0;
+}
+
+.prev:hover, .next:hover {
+    background-color: rgba(0,0,0,0.8);
+}
+
+        .product h3 {
+            color: #1b5e20; /* Dark green product title */
+        }
+        .product p {
+            color: #37474f; /* Slate gray product description and price */
+        }
+        .product button {
+            background-color: #00796b; /* Medium teal button */
+            color: #ffffff; /* White text */
+            border: none;
+            padding: 10px 25px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .product button:hover {
+            background-color: #d32f2f; /* Red hover color */
+        }
+        footer {
+            background-color: #263238; /* Darker gray footer background */
+            color: #ffffff; /* White footer text */
+            text-align: center;
+            padding: 15px 0;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Jacket Reselling</h1>
+        <nav>
+            <a href="#">Home</a> |
+            <a href="#">Shop</a> |
+            <a href="#">Login</a> |
+            <a href="#">Register</a>
+        </nav>
+        <form action="#" method="GET">
+            <input type="text" name="search" placeholder="Search jackets…">
+            <button type="submit">Search</button>
+        </form>
+    </header>
+
+    <div class="container">
+        
+        <h2>Featured Jackets</h2>
+        <div class="product-list">
+            <!-- Product cards -->
+            <div class="product">
+                <div class="slider">
+                    <div class="slides">
+                        <img src="1_1.jpeg" alt="Jacket 1 - Image 1">
+                        <img src="1_2.jpeg" alt="Jacket 1 - Image 2">
+                        <img src="1_3.jpeg" alt="Jacket 1 - Image 3">
+                    </div>
+                    <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
+                    <a class="next" onclick="plusSlides(1)">&#10095;</a>
+                </div>
+                <h3>PUMA</h3>
+                <p>PUMA DOWNTOWN corduroy couple solid casual jacket</p>
+                <p>Price: ₹4,549</p>
+                <button>Add to Cart</button>
+            </div>
+            <!-- Product cards -->
+            <div class="product">
+                <div class="slider">
+                    <div class="slides">
+                        <img src="1_1.jpeg" alt="Jacket 1 - Image 1">
+                        <img src="1_2.jpeg" alt="Jacket 1 - Image 2">
+                        <img src="1_3.jpeg" alt="Jacket 1 - Image 3">
+                    </div>
+                    <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
+                    <a class="next" onclick="plusSlides(1)">&#10095;</a>
+                </div>
+                <h3>PUMA</h3>
+                <p>PUMA DOWNTOWN corduroy couple solid casual jacket</p>
+                <p>Price: ₹4,549</p>
+                <button>Add to Cart</button>
+            </div>
+            <!-- Repeat for other products -->
+        </div>
+    </div>
+    <br>
+    <br>
+    <br>
+    <br>
+    <!-- <footer>
+        <p>Help Lines:+91 9381973514 <br> Contact us at chindamshivakumars@gmail.com <br> &copy; 2024 Jacket Reselling. All rights reserved.</p>
+    </footer>  -->
+
+    <script>
+        let slideIndex = 0;
+        const slides = document.querySelectorAll('.slides');
+        
+        function showSlides(n) {
+            slides.forEach((slide, index) => {
+                const images = slide.children;
+                for (let i = 0; i < images.length; i++) {
+                    images[i].style.display = 'none';
+                }
+                slideIndex += n;
+                if (slideIndex >= images.length) {
+                    slideIndex = 0;
+                } 
+                if (slideIndex < 0) {
+                    slideIndex = images.length - 1;
+                }
+                images[slideIndex].style.display = 'block';
+            });
+        }
+
+        function plusSlides(n) {
+            showSlides(n);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            showSlides(0);
+        });
+    </script>
+</body>
+</html>
