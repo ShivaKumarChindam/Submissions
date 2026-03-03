@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevNotes Cloud Notebook</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+
+    <style>
+        :root { --primary: #6366f1; --bg: #f1f5f9; --text: #1e293b; --code-bg: #2d2d2d; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg); color: var(--text); padding-bottom: 120px; }
+
+        .header { background: white; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+        .dropdown { padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; outline: none; }
+
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+        .subject-card { background: white; padding: 25px; border-radius: 12px; border-left: 8px solid var(--primary); margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        
+        .note-cell { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0; position: relative; }
+        .note-cell h2 { font-size: 1.2rem; outline: none; border-bottom: 1px dashed #cbd5e1; margin-bottom: 10px; }
+        .desc-input { width: 100%; border: none; outline: none; padding: 10px 0; font-size: 1rem; resize: none; margin-bottom: 10px; }
+
+        /* Syntax Highlighting Layers */
+        .code-container { position: relative; background: var(--code-bg); border-radius: 8px; overflow: hidden; }
+        .code-input { width: 100%; min-height: 120px; background: transparent; color: transparent; caret-color: white; padding: 15px; border: none; outline: none; font-family: 'Consolas', monospace; position: absolute; top: 0; left: 0; z-index: 2; resize: none; white-space: pre; overflow-wrap: normal; }
+        .code-output { margin: 0; padding: 15px; min-height: 120px; z-index: 1; pointer-events: none; }
+
+        .toolbar { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); background: #1e293b; padding: 12px 25px; border-radius: 50px; display: flex; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .btn { border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; color: white; transition: 0.2s; }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: #22c55e; }
+        .btn-danger { background: #ef4444; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: #94a3b8; margin-right: 5px; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div>
+            <h3 id="displaySheetName">DevNotes Cloud</h3>
+            <div style="display:flex; align-items:center; font-size: 0.8rem; margin-top:4px;">
+                <span id="statusDot" class="status-dot"></span>
+                <span id="statusText">Ready</span>
+            </div>
+        </div>
+        <div>
+            <label>Switch Sheet: </label>
+            <select id="sheetSelector" class="dropdown" onchange="loadNewSheet()"></select>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="subject-card">
+            <h1 id="subTitle" contenteditable="true">Subject Title</h1>
+            <p id="subDesc" contenteditable="true">General subject overview...</p>
+        </div>
+
+        <div id="notesWrapper"></div>
+    </div>
+
+    <div class="toolbar">
+        <button class="btn btn-primary" onclick="addTopic()">+ Add Topic</button>
+        <button class="btn btn-success" onclick="submitToCloud()">Submit to Excel</button>
+        <button class="btn btn-danger" onclick="exportPDF()">Save PDF</button>
+        <button class="btn" style="background:#475569" onclick="createNewSheet()">New Sheet</button>
+    </div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxop25Ng2TwY7KkdUMfmb9Y1blCxTDyCVC_m1lybg2xBCRQArbvWCBhp8q40OWeOzRDJg/exec";
+
+    async function loadData(targetSheet = "") {
+    updateStatus("Loading...", "#eab308");
+    try {
+        const url = targetSheet ? `${SCRIPT_URL}?sheetName=${encodeURIComponent(targetSheet)}` : SCRIPT_URL;
+        const res = await fetch(url);
+        const json = await res.json();
+        
+        const selector = document.getElementById('sheetSelector');
+        selector.innerHTML = json.sheetNames.map(name => `<option value="${name}" ${name === json.currentSheet ? 'selected' : ''}>${name}</option>`).join('');
+        
+        // FIX: Update Display Name
+        document.getElementById('displaySheetName').innerText = json.currentSheet;
+        
+        renderFromSheet(json.data);
+        updateStatus("Connected", "#22c55e");
+    } catch (e) {
+        updateStatus("Error", "#ef4444");
+    }
+}
+
+    function renderNotes(dataRows) {
+        const wrapper = document.getElementById('notesWrapper');
+        wrapper.innerHTML = "";
+        if (dataRows.length <= 1) {
+            addTopic(); // Load 1 empty topic if sheet is empty
+            return;
+        }
+        // Assuming headers are row 0, data starts row 1
+        // We take unique topics based on the most recent entries if needed
+        dataRows.slice(1).forEach(row => {
+            addTopic({h: row[2], d: row[3], c: row[4]});
+        });
+    }
+
+    function addTopic(data = {h: "Topic Heading", d: "", c: "// Enter code here"}) {
+        const wrapper = document.getElementById('notesWrapper');
+        const div = document.createElement('div');
+        div.className = 'note-cell';
+        div.innerHTML = `
+            <h2 contenteditable="true">${data.h}</h2>
+            <textarea class="desc-input" placeholder="Topic Description...">${data.d}</textarea>
+            <div class="code-container">
+                <textarea class="code-input" oninput="syncHighlight(this)" spellcheck="false">${data.c}</textarea>
+                <pre class="code-output language-java"><code>${data.c}</code></pre>
+            </div>
+        `;
+        wrapper.appendChild(div);
+        // Trigger highlight for loaded data
+        syncHighlight(div.querySelector('.code-input'));
+    }
+
+    function syncHighlight(el) {
+        const code = el.value;
+        const out = el.nextElementSibling.querySelector('code');
+        out.textContent = code;
+        Prism.highlightElement(out);
+    }
+
+    async function submitToCloud() {
+        updateStatus("Syncing...", "#6366f1");
+        const payload = {
+            sheetName: document.getElementById('sheetSelector').value,
+            subject: document.getElementById('subTitle').innerText,
+            subjectDesc: document.getElementById('subDesc').innerText,
+            topics: Array.from(document.querySelectorAll('.note-cell')).map(cell => ({
+                h: cell.querySelector('h2').innerText,
+                d: cell.querySelector('.desc-input').value,
+                c: cell.querySelector('.code-input').value
+            }))
+        };
+
+        // Use no-cors if you have trouble with redirects, but POST usually works with 'cors' if Apps Script is set right
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', 
+            body: JSON.stringify(payload)
+        });
+        
+        updateStatus("Saved to Drive", "#22c55e");
+        alert("Data sent to Google Sheet!");
+    }
+    function renderFromSheet(rows) {
+    const wrapper = document.getElementById('notesWrapper');
+    wrapper.innerHTML = "";
+
+    if (rows.length < 3) { 
+        addTopic(); 
+        return; 
+    }
+
+    // 1. Get Subject Info from the LAST entry in columns A & B (Rows index 2+, Column 0 & 1)
+    let lastSubjectRow = rows.length - 1;
+    // Walk back to find the last non-empty subject name
+    for (let i = rows.length - 1; i >= 2; i--) {
+        if (rows[i][0]) {
+            lastSubjectRow = i;
+            break;
+        }
+    }
+    document.getElementById('subTitle').innerText = rows[lastSubjectRow][0] || "Subject";
+    document.getElementById('subDesc').innerText = rows[lastSubjectRow][1] || "Description";
+
+    // 2. Get Topics from columns E to G (Column Index 4, 5, 6)
+    // We only load topics where Topic Heading (Column E) is present
+    rows.slice(2).forEach(row => {
+        if (row[4]) { // Column E check
+            addTopic({
+                h: row[4], 
+                d: row[5], 
+                c: row[6]
+            });
+        }
+    });
+
+    if (document.querySelectorAll('.note-cell').length === 0) addTopic();
+}
+    function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(99, 102, 241); // Primary Color
+    doc.text(document.getElementById('subTitle').innerText, 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(document.getElementById('subDesc').innerText, 14, 28, { maxWidth: 180 });
+
+    const rows = Array.from(document.querySelectorAll('.note-cell')).map(cell => [
+        cell.querySelector('h2').innerText,
+        cell.querySelector('.desc-input').value,
+        cell.querySelector('.code-input').value
+    ]);
+
+    // PDF Table Styling
+    doc.autoTable({
+        head: [['Topic', 'Description', 'Code Snippet']],
+        body: rows,
+        startY: 40,
+        theme: 'grid', // Adds clear borders
+        styles: { 
+            fontSize: 9, 
+            cellPadding: 5, 
+            overflow: 'linebreak', // Wraps text
+            valign: 'top',
+            lineWidth: 0.1, // Border thickness
+            lineColor: [200, 200, 200]
+        },
+        headStyles: { fillColor: [99, 102, 241], textColor: 255 },
+        columnStyles: {
+            0: { cellWidth: 40, fontStyle: 'bold' },
+            1: { cellWidth: 'auto' },
+            2: { cellWidth: 70, font: 'courier' } // Monospace for code
+        }
+    });
+
+    doc.save(`${document.getElementById('displaySheetName').innerText}.pdf`);
+}
+
+    function createNewSheet() {
+        const name = prompt("Enter new sheet name:");
+        if (name) {
+            const selector = document.getElementById('sheetSelector');
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.innerText = name;
+            opt.selected = true;
+            selector.appendChild(opt);
+            document.getElementById('notesWrapper').innerHTML = "";
+            addTopic();
+        }
+    }
+
+    function loadNewSheet() {
+    const val = document.getElementById('sheetSelector').value;
+    document.getElementById('displaySheetName').innerText = val; // Instant UI Update
+    loadData(val);
+}
+
+    function updateStatus(text, color) {
+        document.getElementById('statusText').innerText = text;
+        document.getElementById('statusDot').style.background = color;
+    }
+
+    window.onload = () => loadData();
+</script>
+</body>
+</html>
